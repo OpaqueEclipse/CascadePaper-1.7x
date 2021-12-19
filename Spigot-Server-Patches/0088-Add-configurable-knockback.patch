@@ -40,10 +40,10 @@ index 34cbf19c..052765ff 100644
        <plugins>
 diff --git a/src/main/java/ms/uk/eclipse/cascade/CascadeConfig.java b/src/main/java/ms/uk/eclipse/cascade/CascadeConfig.java
 new file mode 100644
-index 00000000..6ae44362
+index 00000000..0570af36
 --- /dev/null
 +++ b/src/main/java/ms/uk/eclipse/cascade/CascadeConfig.java
-@@ -0,0 +1,129 @@
+@@ -0,0 +1,139 @@
 +package ms.uk.eclipse.cascade;
 +
 +import com.google.common.base.Throwables;
@@ -122,7 +122,7 @@ index 00000000..6ae44362
 +        }
 +    }
 +
-+    public void save() {
++    public static void save() {
 +        try {
 +            config.save(CONFIG_FILE);
 +        } catch (IOException e) {
@@ -172,6 +172,16 @@ index 00000000..6ae44362
 +        Knockback.knockbackExtraHorizontal = getDouble("Knockback.ExtraHorizontal", 0.5);
 +        Knockback.knockbackExtraVertical = getDouble("Knockback.ExtraVertical", 0.1);
 +    }
++
++    public static void saveKnockback() {
++        set("Knockback.Friction", 2);
++        set("Knockback.Horizontal", 0.4);
++        set("Knockback.Vertical", 0.4);
++        set("Knockback.VerticalLimit", 0.4);
++        set("Knockback.ExtraHorizontal", 0.5);
++        set("Knockback.ExtraVertical", 0.1);
++        save();
++    }
 +}
 diff --git a/src/main/java/ms/uk/eclipse/cascade/Knockback.java b/src/main/java/ms/uk/eclipse/cascade/Knockback.java
 new file mode 100644
@@ -191,10 +201,10 @@ index 00000000..4011859f
 +}
 diff --git a/src/main/java/ms/uk/eclipse/cascade/KnockbackCommand.java b/src/main/java/ms/uk/eclipse/cascade/KnockbackCommand.java
 new file mode 100644
-index 00000000..f389c8c5
+index 00000000..0fe7b813
 --- /dev/null
 +++ b/src/main/java/ms/uk/eclipse/cascade/KnockbackCommand.java
-@@ -0,0 +1,90 @@
+@@ -0,0 +1,91 @@
 +package ms.uk.eclipse.cascade;
 +
 +import org.bukkit.ChatColor;
@@ -231,8 +241,8 @@ index 00000000..f389c8c5
 +                        message(sender, "vertical knockback", Knockback.knockbackVertical);
 +                        return true;
 +                    case "extrahorizontal":
-+                        Knockback.knockbackHorizontal = parseValue(args[1]);
-+                        message(sender, "horizontal (extra)", Knockback.knockbackHorizontal);
++                        Knockback.knockbackExtraHorizontal = parseValue(args[1]);
++                        message(sender, "horizontal (extra)", Knockback.knockbackExtraHorizontal);
 +                        return true;
 +                    case "friction":
 +                        Knockback.knockbackFriction = parseValue(args[1]);
@@ -283,6 +293,7 @@ index 00000000..f389c8c5
 +
 +    private void message(CommandSender viewer, String name, double newVal) {
 +        viewer.sendMessage(ChatColor.GRAY + name + " has been set to " + newVal);
++        CascadeConfig.saveKnockback();
 +    }
 +}
 diff --git a/src/main/java/net/minecraft/server/DedicatedServer.java b/src/main/java/net/minecraft/server/DedicatedServer.java
