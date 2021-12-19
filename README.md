@@ -1,6 +1,6 @@
 Basic 1.7 Paper Fork for Nostalgic Combat (Not production safe)
 
-you'll need git, maven, jdk8, and tolerence for really shitty code structuring if you wan't to use this
+you'll need git, maven, jdk8, and tolerance for really shitty code structuring if you wan't to use this
 
 Credits to OCN for the relog fix and knockback command, and credits to prplz for the bug fixes related to entity tracking, and mojang for craftbukkit /bukkit, and minecraft itself (obviously)
 
