@@ -365,10 +365,10 @@ index d4296131..faa57fba 100644
 -                            entity.g((double) (-MathHelper.sin(this.yaw * 3.1415927F / 180.0F) * (float) i * 0.5F), 0.1D, (double) (MathHelper.cos(this.yaw * 3.1415927F / 180.0F) * (float) i * 0.5F));
 +                            entity.g(
 +                                    (double) (-MathHelper.sin(this.yaw * 3.1415927F / 180.0F) * (float) i
-+                                            * Knockback.knockbackHorizontal),
-+                                    Knockback.knockbackHorizontal,
++                                            * Knockback.knockbackExtraHorizontal),
++                                    Knockback.knockbackExtraVertical,
 +                                    (double) (MathHelper.cos(this.yaw * 3.1415927F / 180.0F) * (float) i
-+                                            * Knockback.knockbackHorizontal));
++                                            * Knockback.knockbackExtraHorizontal));
                              this.motX *= 0.6D;
                              this.motZ *= 0.6D;
                              this.setSprinting(false);
