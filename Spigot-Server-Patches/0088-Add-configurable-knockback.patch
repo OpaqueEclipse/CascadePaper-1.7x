@@ -232,7 +232,7 @@ index 00000000..f389c8c5
 +                        return true;
 +                    case "extrahorizontal":
 +                        Knockback.knockbackExtraHorizontal = parseValue(args[1]);
-+                        message(sender, "horizontal (extra)", Knockback.knockbackHorizontal);
++                        message(sender, "horizontal (extra)", Knockback.knockbackExtraHorizontal);
 +                        return true;
 +                    case "friction":
 +                        Knockback.knockbackFriction = parseValue(args[1]);
