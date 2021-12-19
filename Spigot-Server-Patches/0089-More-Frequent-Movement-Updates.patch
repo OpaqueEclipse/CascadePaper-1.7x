@@ -1,0 +1,13 @@
+diff --git a/src/main/java/net/minecraft/server/EntityTracker.java b/src/main/java/net/minecraft/server/EntityTracker.java
+index c0766d6d..9a20b843 100644
+--- a/src/main/java/net/minecraft/server/EntityTracker.java
++++ b/src/main/java/net/minecraft/server/EntityTracker.java
+@@ -24,7 +24,7 @@ public class EntityTracker {
+ 
+     public void track(Entity entity) {
+         if (entity instanceof EntityPlayer) {
+-            this.addEntity(entity, 512, 2);
++            this.addEntity(entity, 512, 1);
+             EntityPlayer entityplayer = (EntityPlayer) entity;
+             Iterator iterator = this.c.iterator();
+ 
