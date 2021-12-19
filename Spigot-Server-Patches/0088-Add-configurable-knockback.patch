@@ -231,7 +231,7 @@ index 00000000..f389c8c5
 +                        message(sender, "vertical knockback", Knockback.knockbackVertical);
 +                        return true;
 +                    case "extrahorizontal":
-+                        Knockback.knockbackHorizontal = parseValue(args[1]);
++                        Knockback.knockbackExtraHorizontal = parseValue(args[1]);
 +                        message(sender, "horizontal (extra)", Knockback.knockbackHorizontal);
 +                        return true;
 +                    case "friction":
