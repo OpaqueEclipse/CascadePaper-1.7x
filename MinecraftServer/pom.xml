@@ -19,7 +19,7 @@
     <repositories>
         <repository>
             <id>repobo-snap</id>
-            <url>http://repo.bukkit.org/content/groups/public</url>
+            <url>https://papermc.io/repo/repository/maven-public/</url>
         </repository>
     </repositories>
 
