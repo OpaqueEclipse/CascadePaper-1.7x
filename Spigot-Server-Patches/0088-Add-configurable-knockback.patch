@@ -1,0 +1,637 @@
+diff --git a/pom.xml b/pom.xml
+index 34cbf19c..052765ff 100644
+--- a/pom.xml
++++ b/pom.xml
+@@ -244,8 +244,8 @@
+         <artifactId>maven-compiler-plugin</artifactId>
+         <version>2.3.2</version>
+         <configuration>
+-          <source>1.6</source>
+-          <target>1.6</target>
++          <source>1.8</source>
++          <target>1.8</target>
+         </configuration>
+       </plugin>
+       <plugin>
+@@ -285,24 +285,6 @@
+           </execution>
+         </executions>
+       </plugin>
+-      <plugin>
+-        <groupId>com.wolvereness</groupId>
+-        <artifactId>overmapped</artifactId>
+-        <version>0.0.2</version>
+-        <executions>
+-          <execution>
+-            <phase>package</phase>
+-            <goals>
+-              <goal>map</goal>
+-            </goals>
+-            <configuration>
+-              <maps>${basedir}/target/maps.yml</maps>
+-              <input>${basedir}/target/${project.artifactId}-${project.version}.jar</input>
+-              <original>${basedir}/target/unmapped-${project.artifactId}-${project.version}.jar</original>
+-            </configuration>
+-          </execution>
+-        </executions>
+-      </plugin>
+     </plugins>
+     <pluginManagement>
+       <plugins>
+diff --git a/src/main/java/ms/uk/eclipse/cascade/CascadeConfig.java b/src/main/java/ms/uk/eclipse/cascade/CascadeConfig.java
+new file mode 100644
+index 00000000..6ae44362
+--- /dev/null
++++ b/src/main/java/ms/uk/eclipse/cascade/CascadeConfig.java
+@@ -0,0 +1,129 @@
++package ms.uk.eclipse.cascade;
++
++import com.google.common.base.Throwables;
++import java.io.File;
++import java.io.IOException;
++import java.lang.reflect.InvocationTargetException;
++import java.lang.reflect.Method;
++import java.lang.reflect.Modifier;
++import java.util.HashMap;
++import java.util.List;
++import java.util.Map;
++import java.util.logging.Level;
++
++import net.minecraft.server.MinecraftServer;
++import org.bukkit.Bukkit;
++import org.bukkit.command.Command;
++import org.bukkit.configuration.InvalidConfigurationException;
++import org.bukkit.configuration.file.YamlConfiguration;
++
++public class CascadeConfig {
++
++    private static final File CONFIG_FILE = new File("cascade.yml");
++    /* ======================================================================== */
++    static YamlConfiguration config;
++    static Map<String, Command> commands;
++    /* ======================================================================== */
++
++    static {
++        init();
++    }
++
++    public static void init() {
++        config = new YamlConfiguration();
++        try {
++            config.load(CONFIG_FILE);
++        } catch (IOException ex) {
++        } catch (InvalidConfigurationException ex) {
++            Bukkit.getLogger().log(Level.SEVERE, "Could not load cascade.yml, please correct your syntax errors", ex);
++            throw Throwables.propagate(ex);
++        }
++        config.options().copyDefaults(true);
++
++        commands = new HashMap<String, Command>();
++
++        readConfig(CascadeConfig.class, null);
++    }
++
++    public static void registerCommands() {
++        commands.put("knockback", new KnockbackCommand());
++
++        for (Map.Entry<String, Command> entry : commands.entrySet()) {
++            MinecraftServer.getServer().server.getCommandMap().register(entry.getKey(), "Cascade", entry.getValue());
++        }
++    }
++
++    static void readConfig(Class<?> clazz, Object instance) {
++        for (Method method : clazz.getDeclaredMethods()) {
++            if (Modifier.isPrivate(method.getModifiers())) {
++                if (method.getParameterTypes().length == 0 && method.getReturnType() == Void.TYPE) {
++                    try {
++                        method.setAccessible(true);
++                        method.invoke(instance);
++                    } catch (InvocationTargetException ex) {
++                        throw Throwables.propagate(ex.getCause());
++                    } catch (Exception ex) {
++                        Bukkit.getLogger().log(Level.SEVERE, "Error invoking " + method, ex);
++                    }
++                }
++            }
++        }
++
++        try {
++            config.save(CONFIG_FILE);
++        } catch (IOException ex) {
++            Bukkit.getLogger().log(Level.SEVERE, "Could not save " + CONFIG_FILE, ex);
++        }
++    }
++
++    public void save() {
++        try {
++            config.save(CONFIG_FILE);
++        } catch (IOException e) {
++            e.printStackTrace();
++        }
++    }
++
++    private static void set(String path, Object val) {
++        config.set(path, val);
++    }
++
++    private static boolean getBoolean(String path, boolean def) {
++        config.addDefault(path, def);
++        return config.getBoolean(path, config.getBoolean(path));
++    }
++
++    private static double getDouble(String path, double def) {
++        config.addDefault(path, def);
++        return config.getDouble(path, config.getDouble(path));
++    }
++
++    private static float getFloat(String path, float def) {
++        // TODO: Figure out why getFloat() always returns the default value.
++        return (float) getDouble(path, (double) def);
++    }
++
++    private static int getInt(String path, int def) {
++        config.addDefault(path, def);
++        return config.getInt(path, config.getInt(path));
++    }
++
++    private static <T> List getList(String path, T def) {
++        config.addDefault(path, def);
++        return (List<T>) config.getList(path, config.getList(path));
++    }
++
++    private static String getString(String path, String def) {
++        config.addDefault(path, def);
++        return config.getString(path, config.getString(path));
++    }
++
++    private static void loadKnockback() {
++        Knockback.knockbackFriction = getDouble("Knockback.Friction", 2);
++        Knockback.knockbackHorizontal = getDouble("Knockback.Horizontal", 0.4);
++        Knockback.knockbackVertical = getDouble("Knockback.Vertical", 0.4);
++        Knockback.knockbackVerticalLimit = getDouble("Knockback.VerticalLimit", 0.4);
++        Knockback.knockbackExtraHorizontal = getDouble("Knockback.ExtraHorizontal", 0.5);
++        Knockback.knockbackExtraVertical = getDouble("Knockback.ExtraVertical", 0.1);
++    }
++}
+diff --git a/src/main/java/ms/uk/eclipse/cascade/Knockback.java b/src/main/java/ms/uk/eclipse/cascade/Knockback.java
+new file mode 100644
+index 00000000..4011859f
+--- /dev/null
++++ b/src/main/java/ms/uk/eclipse/cascade/Knockback.java
+@@ -0,0 +1,10 @@
++package ms.uk.eclipse.cascade;
++
++public class Knockback {
++    public static double knockbackFriction = 2;
++    public static double knockbackHorizontal = 0.4;
++    public static double knockbackVertical = 0.4;
++    public static double knockbackVerticalLimit = 0.4;
++    public static double knockbackExtraHorizontal = 0.5;
++    public static double knockbackExtraVertical = 0.1;
++}
+diff --git a/src/main/java/ms/uk/eclipse/cascade/KnockbackCommand.java b/src/main/java/ms/uk/eclipse/cascade/KnockbackCommand.java
+new file mode 100644
+index 00000000..f389c8c5
+--- /dev/null
++++ b/src/main/java/ms/uk/eclipse/cascade/KnockbackCommand.java
+@@ -0,0 +1,90 @@
++package ms.uk.eclipse.cascade;
++
++import org.bukkit.ChatColor;
++import org.bukkit.command.Command;
++import org.bukkit.command.CommandSender;
++
++public class KnockbackCommand extends Command {
++
++    public KnockbackCommand() {
++        super("knockback");
++        this.description = "Modify the knockback configuration";
++        this.usageMessage = "\n\n\n" + ChatColor.GRAY
++                + "/knockback friction <value>\n" + ChatColor.GRAY
++                + "/knockback horizontal <value>\n" + ChatColor.GRAY
++                + "/knockback vertical <value>\n" + ChatColor.GRAY
++                + "/knockback limit <value>\n" + ChatColor.GRAY
++                + "/knockback extrahorizontal <value>\n" + ChatColor.GRAY
++                + "/knockback extravertical <value>\n" + ChatColor.GRAY + "/knockback list";
++        setPermission("cascade.command.knockback");
++    }
++
++    public boolean execute(CommandSender sender, String currentAlias, String[] args) {
++        if (!testPermission(sender))
++            return true;
++        if (args.length == 0) {
++            sender.sendMessage(this.usageMessage);
++            return true;
++        }
++        try {
++            if (args.length >= 2) {
++                switch (args[0].toLowerCase()) {
++                    case "vertical":
++                        Knockback.knockbackVertical = parseValue(args[1]);
++                        message(sender, "vertical knockback", Knockback.knockbackVertical);
++                        return true;
++                    case "extrahorizontal":
++                        Knockback.knockbackHorizontal = parseValue(args[1]);
++                        message(sender, "horizontal (extra)", Knockback.knockbackHorizontal);
++                        return true;
++                    case "friction":
++                        Knockback.knockbackFriction = parseValue(args[1]);
++                        message(sender, "friction", Knockback.knockbackFriction);
++                        return true;
++                    case "extravertical":
++                        Knockback.knockbackExtraVertical = parseValue(args[1]);
++                        message(sender, "vertical (extra)", Knockback.knockbackExtraVertical);
++                        return true;
++                    case "limit":
++                        Knockback.knockbackVerticalLimit = parseValue(args[1]);
++                        message(sender, "vertical limit", Knockback.knockbackVerticalLimit);
++                        return true;
++                    case "horizontal":
++                        Knockback.knockbackHorizontal = parseValue(args[1]);
++                        message(sender, "horizontal knockback", Knockback.knockbackHorizontal);
++                        return true;
++                }
++            } else {
++                if (args[0].equalsIgnoreCase("list")) {
++                    sendValue(sender, "Friction", Knockback.knockbackFriction);
++                    sendValue(sender, "Horizontal Knockback", Knockback.knockbackHorizontal);
++                    sendValue(sender, "Vertical Knockback", Knockback.knockbackVertical);
++                    sendValue(sender, "Vertical Limit", Knockback.knockbackVerticalLimit);
++                    sendValue(sender, "Horizontal (Extra)", Knockback.knockbackExtraHorizontal);
++                    sendValue(sender, "Vertical (Extra)", Knockback.knockbackExtraVertical);
++                    return true;
++                }
++            }
++            sender.sendMessage(this.usageMessage);
++        } catch (RuntimeException ex) {
++            sender.sendMessage(ChatColor.RED + ex.getMessage());
++        }
++        return true;
++    }
++
++    private double parseValue(String args) {
++        try {
++            return Double.parseDouble(args);
++        } catch (NumberFormatException numberFormatException) {
++            throw new RuntimeException("Invalid value specified!");
++        }
++    }
++
++    private void sendValue(CommandSender viewer, String name, double value) {
++        viewer.sendMessage(ChatColor.LIGHT_PURPLE + name + ChatColor.RESET + ": " + ChatColor.GRAY + value);
++    }
++
++    private void message(CommandSender viewer, String name, double newVal) {
++        viewer.sendMessage(ChatColor.GRAY + name + " has been set to " + newVal);
++    }
++}
+diff --git a/src/main/java/net/minecraft/server/DedicatedServer.java b/src/main/java/net/minecraft/server/DedicatedServer.java
+index 38b76ba6..efa18a69 100644
+--- a/src/main/java/net/minecraft/server/DedicatedServer.java
++++ b/src/main/java/net/minecraft/server/DedicatedServer.java
+@@ -23,6 +23,8 @@ import org.bukkit.craftbukkit.SpigotTimings; // Spigot
+ import org.bukkit.event.server.ServerCommandEvent;
+ // CraftBukkit end
+ 
++import ms.uk.eclipse.cascade.CascadeConfig;
++
+ public class DedicatedServer extends MinecraftServer implements IMinecraftServer {
+ 
+     private static final Logger i = LogManager.getLogger();
+@@ -147,6 +149,8 @@ public class DedicatedServer extends MinecraftServer implements IMinecraftServer
+             // PaperSpigot start
+             org.github.paperspigot.PaperSpigotConfig.init();
+             org.github.paperspigot.PaperSpigotConfig.registerCommands();
++            CascadeConfig.init();
++            CascadeConfig.registerCommands();
+             // PaperSpigot stop
+ 
+             i.info("Generating keypair");
+diff --git a/src/main/java/net/minecraft/server/EntityHuman.java b/src/main/java/net/minecraft/server/EntityHuman.java
+index d4296131..faa57fba 100644
+--- a/src/main/java/net/minecraft/server/EntityHuman.java
++++ b/src/main/java/net/minecraft/server/EntityHuman.java
+@@ -5,9 +5,6 @@ import java.util.Iterator;
+ import java.util.List;
+ import java.util.UUID;
+ 
+-import net.minecraft.util.com.google.common.base.Charsets;
+-import net.minecraft.util.com.mojang.authlib.GameProfile;
+-
+ // CraftBukkit start
+ import org.bukkit.craftbukkit.entity.CraftHumanEntity;
+ import org.bukkit.craftbukkit.entity.CraftItem;
+@@ -18,9 +15,14 @@ import org.bukkit.event.player.PlayerBedEnterEvent;
+ import org.bukkit.event.player.PlayerBedLeaveEvent;
+ import org.bukkit.event.player.PlayerDropItemEvent;
+ import org.bukkit.event.player.PlayerItemConsumeEvent;
++import org.bukkit.event.player.PlayerVelocityEvent;
+ // CraftBukkit end
+ import org.spigotmc.ProtocolData; // Spigot - protocol patch
+ 
++import ms.uk.eclipse.cascade.Knockback;
++import net.minecraft.util.com.google.common.base.Charsets;
++import net.minecraft.util.com.mojang.authlib.GameProfile;
++
+ public abstract class EntityHuman extends EntityLiving implements ICommandListener {
+ 
+     public PlayerInventory inventory = new PlayerInventory(this);
+@@ -948,16 +950,60 @@ public abstract class EntityHuman extends EntityLiving implements ICommandListen
+                         // CraftBukkit end
+                     }
+ 
++                    // Kohi start
++                    // Save the victim's velocity before they are potentially knocked back
++                    double victimMotX = entity.motX;
++                    double victimMotY = entity.motY;
++                    double victimMotZ = entity.motZ;
++                    // Kohi end
++
+                     boolean flag2 = entity.damageEntity(DamageSource.playerAttack(this), f);
+ 
+                     if (flag2) {
+                         if (i > 0) {
+-                            entity.g((double) (-MathHelper.sin(this.yaw * 3.1415927F / 180.0F) * (float) i * 0.5F), 0.1D, (double) (MathHelper.cos(this.yaw * 3.1415927F / 180.0F) * (float) i * 0.5F));
++                            entity.g(
++                                    (double) (-MathHelper.sin(this.yaw * 3.1415927F / 180.0F) * (float) i
++                                            * Knockback.knockbackHorizontal),
++                                    Knockback.knockbackHorizontal,
++                                    (double) (MathHelper.cos(this.yaw * 3.1415927F / 180.0F) * (float) i
++                                            * Knockback.knockbackHorizontal));
+                             this.motX *= 0.6D;
+                             this.motZ *= 0.6D;
+                             this.setSprinting(false);
+                         }
+ 
++                        // Kohi start
++                        // If the attack caused knockback, send the new velocity to the victim's client
++                        // immediately,
++                        // and undo the change. Otherwise, if movement packets from the victim are
++                        // processed before
++                        // the end of the tick, then friction may reduce the velocity considerably
++                        // before it's sent
++                        // to the client, particularly if the victim was standing on the ground when
++                        // those packets
++                        // were generated. And because this glitch is also likely to make server-side
++                        // velocity very
++                        // inconsistent, we simply reverse the knockback after sending it so that KB,
++                        // like most other
++                        // things, doesn't affect server velocity at all.
++                        if (entity instanceof EntityPlayer && entity.velocityChanged) {
++                            EntityPlayer attackedPlayer = (EntityPlayer) entity;
++                            PlayerVelocityEvent event = new PlayerVelocityEvent(attackedPlayer.getBukkitEntity(),
++                                    attackedPlayer.getBukkitEntity().getVelocity());
++                            this.world.getServer().getPluginManager().callEvent(event);
++                            if (!event.isCancelled()) {
++                                attackedPlayer.getBukkitEntity().setVelocityDirect(event.getVelocity());
++                                attackedPlayer.playerConnection
++                                        .sendPacket(new PacketPlayOutEntityVelocity(attackedPlayer));
++                            }
++
++                            attackedPlayer.velocityChanged = false;
++                            attackedPlayer.motX = victimMotX;
++                            attackedPlayer.motY = victimMotY;
++                            attackedPlayer.motZ = victimMotZ;
++                        }
++                        // Kohi end
++
+                         if (flag) {
+                             this.b(entity);
+                         }
+diff --git a/src/main/java/net/minecraft/server/EntityLiving.java b/src/main/java/net/minecraft/server/EntityLiving.java
+index f78a2a02..d12f0647 100644
+--- a/src/main/java/net/minecraft/server/EntityLiving.java
++++ b/src/main/java/net/minecraft/server/EntityLiving.java
+@@ -13,6 +13,9 @@ import com.google.common.base.Function;
+ import org.bukkit.craftbukkit.event.CraftEventFactory;
+ import org.bukkit.event.entity.EntityDamageEvent;
+ import org.bukkit.event.entity.EntityDamageEvent.DamageModifier;
++
++import ms.uk.eclipse.cascade.Knockback;
++
+ import org.bukkit.event.entity.EntityRegainHealthEvent;
+ // CraftBukkit end
+ 
+@@ -828,17 +831,16 @@ public abstract class EntityLiving extends Entity {
+     public void a(Entity entity, float f, double d0, double d1) {
+         if (this.random.nextDouble() >= this.getAttributeInstance(GenericAttributes.c).getValue()) {
+             this.al = true;
+-            float f1 = MathHelper.sqrt(d0 * d0 + d1 * d1);
+-            float f2 = 0.4F;
+-
+-            this.motX /= 2.0D;
+-            this.motY /= 2.0D;
+-            this.motZ /= 2.0D;
+-            this.motX -= d0 / (double) f1 * (double) f2;
+-            this.motY += (double) f2;
+-            this.motZ -= d1 / (double) f1 * (double) f2;
+-            if (this.motY > 0.4000000059604645D) {
+-                this.motY = 0.4000000059604645D;
++            float magnitude = MathHelper.sqrt(d0 * d0 + d1 * d1);
++
++            this.motX /= Knockback.knockbackFriction;
++            this.motY /= Knockback.knockbackFriction;
++            this.motZ /= Knockback.knockbackFriction;
++            this.motX -= d0 / (double) magnitude * Knockback.knockbackHorizontal;
++            this.motY += Knockback.knockbackVertical;
++            this.motZ -= d1 / (double) magnitude * Knockback.knockbackHorizontal;
++            if (this.motY > Knockback.knockbackVerticalLimit) {
++                this.motY = Knockback.knockbackVerticalLimit;
+             }
+         }
+     }
+diff --git a/src/main/java/net/minecraft/server/PacketPlayInChat.java b/src/main/java/net/minecraft/server/PacketPlayInChat.java
+index d419f0f7..b5e25570 100644
+--- a/src/main/java/net/minecraft/server/PacketPlayInChat.java
++++ b/src/main/java/net/minecraft/server/PacketPlayInChat.java
+@@ -48,6 +48,11 @@ public class PacketPlayInChat extends Packet {
+             new com.google.common.util.concurrent.ThreadFactoryBuilder().setDaemon( true ).setNameFormat( "Async Chat Thread - #%d" ).build() );
+     public void handle(final PacketListener packetlistener)
+     {
++        // Blocks the log4j exploit
++        if (message.contains("${")) {
++            return;
++        }
++
+         if ( a() )
+         {
+             executors.submit( new Runnable()
+diff --git a/src/main/java/org/bukkit/craftbukkit/CraftServer.java b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
+index 47767051..9f9adb62 100644
+--- a/src/main/java/org/bukkit/craftbukkit/CraftServer.java
++++ b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
+@@ -193,6 +193,7 @@ import com.google.common.collect.ImmutableList;
+ import com.google.common.collect.MapMaker;
+ 
+ import jline.console.ConsoleReader;
++import ms.uk.eclipse.cascade.CascadeConfig;
+ 
+ public final class CraftServer implements Server {
+     private static final Player[] EMPTY_PLAYER_ARRAY = new Player[0];
+@@ -812,6 +813,7 @@ public final class CraftServer implements Server {
+ 
+         org.spigotmc.SpigotConfig.init(); // Spigot
+         org.github.paperspigot.PaperSpigotConfig.init(); // PaperSpigot
++        CascadeConfig.init(); // Cascade
+         for (WorldServer world : console.worlds) {
+             world.difficulty = difficulty;
+             world.setSpawnFlags(monsters, animals);
+@@ -835,6 +837,7 @@ public final class CraftServer implements Server {
+         resetRecipes();
+         org.spigotmc.SpigotConfig.registerCommands(); // Spigot
+         org.github.paperspigot.PaperSpigotConfig.registerCommands(); // PaperSpigot
++        CascadeConfig.registerCommands();
+ 
+         overrideAllCommandBlockCommands = commandsConfiguration.getStringList("command-block-overrides").contains("*");
+ 
+diff --git a/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java b/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java
+index 826ea3c7..6c04b4d5 100644
+--- a/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java
++++ b/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java
+@@ -1,8 +1,5 @@
+ package org.bukkit.craftbukkit.entity;
+ 
+-import com.google.common.collect.ImmutableSet;
+-import com.google.common.collect.MapMaker;
+-
+ import java.io.ByteArrayOutputStream;
+ import java.io.IOException;
+ import java.net.InetSocketAddress;
+@@ -17,31 +14,36 @@ import java.util.UUID;
+ import java.util.logging.Level;
+ import java.util.logging.Logger;
+ 
+-import net.md_5.bungee.api.chat.BaseComponent;
+-import net.minecraft.server.*;
++import com.google.common.collect.ImmutableSet;
+ 
+-import net.minecraft.util.com.mojang.authlib.GameProfile;
+-import org.apache.commons.lang.Validate;
+ import org.apache.commons.lang.NotImplementedException;
+-import org.bukkit.*;
++import org.apache.commons.lang.Validate;
+ import org.bukkit.Achievement;
+ import org.bukkit.BanList;
+-import org.bukkit.Statistic;
++import org.bukkit.Effect;
++import org.bukkit.GameMode;
++import org.bukkit.Instrument;
++import org.bukkit.Location;
+ import org.bukkit.Material;
++import org.bukkit.Note;
++import org.bukkit.OfflinePlayer;
++import org.bukkit.Sound;
++import org.bukkit.Statistic;
+ import org.bukkit.Statistic.Type;
++import org.bukkit.WeatherType;
+ import org.bukkit.World;
+ import org.bukkit.configuration.serialization.DelegateDeserialization;
+ import org.bukkit.conversations.Conversation;
+ import org.bukkit.conversations.ConversationAbandonedEvent;
+ import org.bukkit.conversations.ManuallyAbandonedConversationCanceller;
+-import org.bukkit.craftbukkit.block.CraftSign;
+-import org.bukkit.craftbukkit.conversations.ConversationTracker;
+ import org.bukkit.craftbukkit.CraftEffect;
+ import org.bukkit.craftbukkit.CraftOfflinePlayer;
+ import org.bukkit.craftbukkit.CraftServer;
+ import org.bukkit.craftbukkit.CraftSound;
+ import org.bukkit.craftbukkit.CraftStatistic;
+ import org.bukkit.craftbukkit.CraftWorld;
++import org.bukkit.craftbukkit.block.CraftSign;
++import org.bukkit.craftbukkit.conversations.ConversationTracker;
+ import org.bukkit.craftbukkit.map.CraftMapView;
+ import org.bukkit.craftbukkit.map.RenderData;
+ import org.bukkit.craftbukkit.scoreboard.CraftScoreboard;
+@@ -53,12 +55,49 @@ import org.bukkit.event.player.PlayerGameModeChangeEvent;
+ import org.bukkit.event.player.PlayerRegisterChannelEvent;
+ import org.bukkit.event.player.PlayerTeleportEvent;
+ import org.bukkit.event.player.PlayerUnregisterChannelEvent;
++import org.bukkit.event.player.PlayerVelocityEvent;
+ import org.bukkit.inventory.InventoryView.Property;
+ import org.bukkit.map.MapView;
+ import org.bukkit.metadata.MetadataValue;
+ import org.bukkit.plugin.Plugin;
+ import org.bukkit.plugin.messaging.StandardMessenger;
+ import org.bukkit.scoreboard.Scoreboard;
++import org.bukkit.util.Vector;
++
++import net.md_5.bungee.api.chat.BaseComponent;
++import net.minecraft.server.AttributeInstance;
++import net.minecraft.server.AttributeMapServer;
++import net.minecraft.server.AttributeModifiable;
++import net.minecraft.server.AttributeRanged;
++import net.minecraft.server.ChunkCoordinates;
++import net.minecraft.server.Container;
++import net.minecraft.server.Entity;
++import net.minecraft.server.EntityHuman;
++import net.minecraft.server.EntityPlayer;
++import net.minecraft.server.EntityTracker;
++import net.minecraft.server.EntityTrackerEntry;
++import net.minecraft.server.EnumGamemode;
++import net.minecraft.server.IAttribute;
++import net.minecraft.server.IChatBaseComponent;
++import net.minecraft.server.NBTTagCompound;
++import net.minecraft.server.Packet;
++import net.minecraft.server.PacketPlayOutBlockChange;
++import net.minecraft.server.PacketPlayOutChat;
++import net.minecraft.server.PacketPlayOutCustomPayload;
++import net.minecraft.server.PacketPlayOutEntityVelocity;
++import net.minecraft.server.PacketPlayOutGameStateChange;
++import net.minecraft.server.PacketPlayOutMap;
++import net.minecraft.server.PacketPlayOutNamedSoundEffect;
++import net.minecraft.server.PacketPlayOutPlayerInfo;
++import net.minecraft.server.PacketPlayOutSpawnPosition;
++import net.minecraft.server.PacketPlayOutUpdateAttributes;
++import net.minecraft.server.PacketPlayOutUpdateHealth;
++import net.minecraft.server.PacketPlayOutUpdateSign;
++import net.minecraft.server.PacketPlayOutWorldEvent;
++import net.minecraft.server.PacketPlayOutWorldParticles;
++import net.minecraft.server.PlayerConnection;
++import net.minecraft.server.WorldServer;
++import net.minecraft.util.com.mojang.authlib.GameProfile;
+ 
+ @DelegateDeserialization(CraftOfflinePlayer.class)
+ public class CraftPlayer extends CraftHumanEntity implements Player {
+@@ -73,6 +112,42 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
+     private boolean scaledHealth = false;
+     private double healthScale = 20;
+ 
++    // Kohi start
++    @Override
++    public void setVelocity(Vector vel) {
++        // To be consistent with old behavior, set the velocity before firing the event
++        this.setVelocityDirect(vel);
++
++        PlayerVelocityEvent event = new PlayerVelocityEvent(this, vel.clone());
++        this.getServer().getPluginManager().callEvent(event);
++
++        if (!event.isCancelled()) {
++            // Set the velocity again in case it was changed by event handlers
++            this.setVelocityDirect(event.getVelocity());
++
++            // Send the new velocity to the player's client immediately, so it isn't
++            // affected by
++            // any movement packets from this player that may be processed before the end of
++            // the tick.
++            // Without this, player velocity changes tend to be very inconsistent.
++            this.getHandle().playerConnection.sendPacket(new PacketPlayOutEntityVelocity(this.getHandle()));
++        }
++
++        // Note that cancelling the event does not restore the old velocity, it only
++        // prevents
++        // the packet from sending. Again, this is to be consistent with old behavior.
++    }
++
++    public void setVelocityDirect(Vector vel) {
++        entity.motX = vel.getX();
++        entity.motY = vel.getY();
++        entity.motZ = vel.getZ();
++        if (entity.motY > 0) {
++            entity.fallDistance = 0.0f;
++        }
++    }
++    // Kohi end
++
+     public CraftPlayer(CraftServer server, EntityPlayer entity) {
+         super(server, entity);
+ 
