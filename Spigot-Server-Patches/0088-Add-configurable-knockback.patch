@@ -40,7 +40,7 @@ index 34cbf19c..052765ff 100644
        <plugins>
 diff --git a/src/main/java/ms/uk/eclipse/cascade/CascadeConfig.java b/src/main/java/ms/uk/eclipse/cascade/CascadeConfig.java
 new file mode 100644
-index 00000000..0570af36
+index 00000000..f6c4cc0b
 --- /dev/null
 +++ b/src/main/java/ms/uk/eclipse/cascade/CascadeConfig.java
 @@ -0,0 +1,139 @@
@@ -165,21 +165,21 @@ index 00000000..0570af36
 +    }
 +
 +    private static void loadKnockback() {
-+        Knockback.knockbackFriction = getDouble("Knockback.Friction", 2);
-+        Knockback.knockbackHorizontal = getDouble("Knockback.Horizontal", 0.4);
-+        Knockback.knockbackVertical = getDouble("Knockback.Vertical", 0.4);
-+        Knockback.knockbackVerticalLimit = getDouble("Knockback.VerticalLimit", 0.4);
-+        Knockback.knockbackExtraHorizontal = getDouble("Knockback.ExtraHorizontal", 0.5);
-+        Knockback.knockbackExtraVertical = getDouble("Knockback.ExtraVertical", 0.1);
++        Knockback.knockbackFriction = getDouble("Knockback.Friction", Knockback.knockbackFriction);
++        Knockback.knockbackHorizontal = getDouble("Knockback.Horizontal", Knockback.knockbackHorizontal);
++        Knockback.knockbackVertical = getDouble("Knockback.Vertical", Knockback.knockbackVertical);
++        Knockback.knockbackVerticalLimit = getDouble("Knockback.VerticalLimit", Knockback.knockbackVerticalLimit);
++        Knockback.knockbackExtraHorizontal = getDouble("Knockback.ExtraHorizontal", Knockback.knockbackExtraHorizontal);
++        Knockback.knockbackExtraVertical = getDouble("Knockback.ExtraVertical", Knockback.knockbackExtraVertical);
 +    }
 +
 +    public static void saveKnockback() {
-+        set("Knockback.Friction", 2);
-+        set("Knockback.Horizontal", 0.4);
-+        set("Knockback.Vertical", 0.4);
-+        set("Knockback.VerticalLimit", 0.4);
-+        set("Knockback.ExtraHorizontal", 0.5);
-+        set("Knockback.ExtraVertical", 0.1);
++        set("Knockback.Friction", Knockback.knockbackFriction);
++        set("Knockback.Horizontal", Knockback.knockbackHorizontal);
++        set("Knockback.Vertical", Knockback.knockbackVertical);
++        set("Knockback.VerticalLimit", Knockback.knockbackVerticalLimit);
++        set("Knockback.ExtraHorizontal", Knockback.knockbackExtraHorizontal);
++        set("Knockback.ExtraVertical", Knockback.knockbackExtraVertical);
 +        save();
 +    }
 +}
