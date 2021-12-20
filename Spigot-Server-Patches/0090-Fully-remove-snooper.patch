@@ -1,0 +1,91 @@
+From: OpaqueEclipse <jaibrown51@gmail.com>
+Date: Tue, 20 Dec 2021 12:46:01 -0500
+Subject: [PATCH] Fully remove snooper
+
+diff --git a/src/main/java/net/minecraft/server/DedicatedServer.java b/src/main/java/net/minecraft/server/DedicatedServer.java
+index efa18a69..44d7b0b1 100644
+--- a/src/main/java/net/minecraft/server/DedicatedServer.java
++++ b/src/main/java/net/minecraft/server/DedicatedServer.java
+@@ -222,7 +222,6 @@ public class DedicatedServer extends MinecraftServer implements IMinecraftServer
+                 this.at();
+                 this.getEnableCommandBlock();
+                 this.l();
+-                this.getSnooperEnabled();
+                 this.c(this.propertyManager.getInt("max-build-height", 256));
+                 this.c((this.getMaxBuildHeight() + 8) / 16 * 16);
+                 this.c(MathHelper.a(this.getMaxBuildHeight(), 64, 256));
+@@ -326,10 +325,6 @@ public class DedicatedServer extends MinecraftServer implements IMinecraftServer
+         super.a(mojangstatisticsgenerator);
+     }
+ 
+-    public boolean getSnooperEnabled() {
+-        return this.propertyManager.getBoolean("snooper-enabled", true);
+-    }
+-
+     public void issueCommand(String s, ICommandListener icommandlistener) {
+         this.j.add(new ServerCommand(s, icommandlistener));
+     }
+diff --git a/src/main/java/net/minecraft/server/MinecraftServer.java b/src/main/java/net/minecraft/server/MinecraftServer.java
+index 47d15a55..1d171e09 100644
+--- a/src/main/java/net/minecraft/server/MinecraftServer.java
++++ b/src/main/java/net/minecraft/server/MinecraftServer.java
+@@ -10,7 +10,6 @@ import java.util.ArrayList;
+ import java.util.Arrays;
+ import java.util.Collections;
+ import java.util.Date;
+-import java.util.Iterator;
+ import java.util.List;
+ import java.util.Random;
+ import java.util.UUID;
+@@ -43,13 +42,12 @@ import org.bukkit.event.server.RemoteServerCommandEvent;
+ import org.bukkit.event.world.WorldSaveEvent;
+ // CraftBukkit end
+ 
+-public abstract class MinecraftServer implements ICommandListener, Runnable, IMojangStatistics {
++public abstract class MinecraftServer implements ICommandListener, Runnable {
+ 
+     private static final Logger i = LogManager.getLogger();
+     private static final File a = new File("usercache.json");
+     private static MinecraftServer j;
+     public Convertable convertable; // CraftBukkit - private final -> public
+-    private final MojangStatisticsGenerator l = new MojangStatisticsGenerator("server", this, ar());
+     public File universe; // CraftBukkit - private final -> public
+     private final List n = new ArrayList();
+     private final ICommandHandler o;
+@@ -416,10 +414,6 @@ public abstract class MinecraftServer implements ICommandListener, Runnable, IMo
+                 }
+                 // CraftBukkit end */
+             }
+-
+-            if (this.l.d()) {
+-                this.l.e();
+-            }
+             // Spigot start
+             if( org.spigotmc.SpigotConfig.saveUserCacheOnStopOnly )
+             {
+@@ -618,14 +612,6 @@ public abstract class MinecraftServer implements ICommandListener, Runnable, IMo
+         this.methodProfiler.a("tallying");
+         this.g[this.ticks % 100] = System.nanoTime() - i;
+         this.methodProfiler.b();
+-        this.methodProfiler.a("snooper");
+-        if (getSnooperEnabled() && !this.l.d() && this.ticks > 100) { // Spigot
+-            this.l.a();
+-        }
+-
+-        if (getSnooperEnabled() && this.ticks % 6000 == 0) { // Spigot
+-            this.l.b();
+-        }
+ 
+         this.methodProfiler.b();
+         this.methodProfiler.b();
+@@ -1216,10 +1202,6 @@ public abstract class MinecraftServer implements ICommandListener, Runnable, IMo
+         mojangstatisticsgenerator.b("dedicated", Boolean.valueOf(this.X()));
+     }
+ 
+-    public boolean getSnooperEnabled() {
+-        return true;
+-    }
+-
+     public abstract boolean X();
+ 
+     public boolean getOnlineMode() {
