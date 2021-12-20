@@ -1,3 +1,8 @@
+From x3o3w6dbe8v5sxe3mddbekm8qtv4gcddgh7grfdg Mon Sep 17 00:00:00 2001
+From: OpaqueEclipse <jaibrown51@gmail.com>
+Date: Tue, 20 Dec 2021 11:46:19 -0500
+Subject: [PATCH] Make TCPNoDelay and Smooth plauer movement configurable
+
 diff --git a/src/main/java/ms/uk/eclipse/cascade/CascadeConfig.java b/src/main/java/ms/uk/eclipse/cascade/CascadeConfig.java
 index f6c4cc0b..f8569f03 100644
 --- a/src/main/java/ms/uk/eclipse/cascade/CascadeConfig.java

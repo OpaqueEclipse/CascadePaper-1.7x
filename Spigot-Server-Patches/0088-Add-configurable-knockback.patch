@@ -1,3 +1,8 @@
+From x3o3w6dbe8v5sxe3mddbekm8qtv4gcddgh7grfdg Mon Sep 17 00:00:00 2001
+From: OpaqueEclipse <jaibrown51@gmail.com>
+Date: Tue, 20 Dec 2021 11:46:19 -0500
+Subject: [PATCH] Add configurable knockback
+
 diff --git a/pom.xml b/pom.xml
 index 34cbf19c..052765ff 100644
 --- a/pom.xml
