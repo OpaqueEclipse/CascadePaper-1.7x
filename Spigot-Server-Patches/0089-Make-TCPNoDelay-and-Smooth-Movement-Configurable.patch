@@ -1,0 +1,63 @@
+diff --git a/src/main/java/ms/uk/eclipse/cascade/CascadeConfig.java b/src/main/java/ms/uk/eclipse/cascade/CascadeConfig.java
+index f6c4cc0b..f8569f03 100644
+--- a/src/main/java/ms/uk/eclipse/cascade/CascadeConfig.java
++++ b/src/main/java/ms/uk/eclipse/cascade/CascadeConfig.java
+@@ -136,4 +136,16 @@ public class CascadeConfig {
+         set("Knockback.ExtraVertical", Knockback.knockbackExtraVertical);
+         save();
+     }
++
++    public static boolean smoothPlayerMovement = false;
++
++    private static void smoothPlayerMovement() {
++        smoothPlayerMovement = getBoolean("SmoothPlayerMovement", smoothPlayerMovement);
++    }
++
++    public static boolean tcpNoDelay = true;
++
++    private static void tcpNoDelay() {
++        tcpNoDelay = getBoolean("TCPNoDelay", tcpNoDelay);
++    }
+ }
+diff --git a/src/main/java/net/minecraft/server/EntityTracker.java b/src/main/java/net/minecraft/server/EntityTracker.java
+index c0766d6d..943c5171 100644
+--- a/src/main/java/net/minecraft/server/EntityTracker.java
++++ b/src/main/java/net/minecraft/server/EntityTracker.java
+@@ -9,6 +9,8 @@ import java.util.concurrent.Callable;
+ import org.apache.logging.log4j.LogManager;
+ import org.apache.logging.log4j.Logger;
+ 
++import ms.uk.eclipse.cascade.CascadeConfig;
++
+ public class EntityTracker {
+ 
+     private static final Logger a = LogManager.getLogger();
+@@ -24,7 +26,7 @@ public class EntityTracker {
+ 
+     public void track(Entity entity) {
+         if (entity instanceof EntityPlayer) {
+-            this.addEntity(entity, 512, 2);
++            this.addEntity(entity, 512, CascadeConfig.smoothPlayerMovement ? 1 : 2);
+             EntityPlayer entityplayer = (EntityPlayer) entity;
+             Iterator iterator = this.c.iterator();
+ 
+diff --git a/src/main/java/net/minecraft/server/ServerConnectionChannel.java b/src/main/java/net/minecraft/server/ServerConnectionChannel.java
+index d7d93a07..cb736d5c 100644
+--- a/src/main/java/net/minecraft/server/ServerConnectionChannel.java
++++ b/src/main/java/net/minecraft/server/ServerConnectionChannel.java
+@@ -1,5 +1,6 @@
+ package net.minecraft.server;
+ 
++import ms.uk.eclipse.cascade.CascadeConfig;
+ import net.minecraft.util.io.netty.channel.Channel;
+ import net.minecraft.util.io.netty.channel.ChannelException;
+ import net.minecraft.util.io.netty.channel.ChannelInitializer;
+@@ -22,7 +23,7 @@ class ServerConnectionChannel extends ChannelInitializer {
+         }
+ 
+         try {
+-            channel.config().setOption(ChannelOption.TCP_NODELAY, Boolean.valueOf(false));
++            channel.config().setOption(ChannelOption.TCP_NODELAY, CascadeConfig.tcpNoDelay);
+         } catch (ChannelException channelexception1) {
+             ;
+         }
